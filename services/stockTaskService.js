@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { TaskTypes } = require('../utils/enums');
+const { TaskTypes, TaskStatuses } = require('../utils/enums');
 
 exports.createTask = async (data) => {
   const {
@@ -22,6 +22,10 @@ exports.createTask = async (data) => {
     }
   }
 
+  if (!Object.values(TaskStatuses).includes(status)) {
+    throw new Error('Invalid task status.');
+  }
+
   const result = await pool.query(`
     INSERT INTO demo.stock_tasks (
       task_number, created_by_name, created_by_role,
@@ -39,6 +43,11 @@ exports.createTask = async (data) => {
 };
 
 exports.updateTask = async (taskNumber, updates) => {
+
+  if (!Object.values(TaskStatuses).includes(updates.status)) {
+    throw new Error('Invalid task status.');
+  }
+
   const existing = await pool.query(`SELECT * FROM demo.stock_tasks WHERE task_number = $1`, [taskNumber]);
   if (existing.rowCount === 0) throw new Error('Task not found.');
 
