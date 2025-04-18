@@ -1,20 +1,33 @@
-const stockTaskService = require('../services/stockTaskService');
+const { createTask, updateTask } = require('../services/stockTaskService');
 
 exports.createTask = async (req, res) => {
   try {
-    const task = await stockTaskService.createTask(req.body);
-    res.status(201).json(task);
+    const task = await createTask(req.body);
+    res.status(201).json({
+      success: true,
+      task
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
 exports.updateTask = async (req, res) => {
   try {
     const taskNumber = req.params.taskNumber;
-    const updatedTask = await stockTaskService.updateTask(taskNumber, req.body);
-    res.json(updatedTask);
+    const updates = req.body;
+    const task = await updateTask(taskNumber, updates);
+    res.status(200).json({
+      success: true,
+      task
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };

@@ -1,40 +1,71 @@
-const db = require('../db/fakeDB');
-const { TaskTypes, TaskStatuses } = require('../utils/enums');
+const pool = require('../config/db');
+const { TaskTypes } = require('../utils/enums');
 
 exports.createTask = async (data) => {
-  const { taskNumber, type, createdBy } = data;
+  const {
+    taskNumber, createdBy, assignedTo, product,
+    startedAt, finishedAt, type, status,
+    description, dimensions, weight, specialHandlingInstructions
+  } = data;
 
-  if (db.find(task => task.taskNumber === taskNumber)) {
-    throw new Error('Task number must be unique.');
-  }
-
-  // Basic role check (simplified)
   if (!['manager', 'supervisor'].includes(createdBy.role)) {
     throw new Error('Only manager or supervisor can create tasks.');
   }
 
-  if (type === TaskTypes.REGULAR && data.status === 'Cancelled by Requester') {
-    // OK
-  }
-
-  if (type === TaskTypes.URGENT && !data.description) {
+  if (type === TaskTypes.URGENT && !description) {
     throw new Error('Urgent tasks require a description.');
   }
 
   if (type === TaskTypes.SPECIAL) {
-    if (!data.dimensions || !data.weight || !data.specialHandlingInstructions) {
-      throw new Error('Special load requires dimensions, weight, and instructions.');
+    if (!dimensions || !weight || !specialHandlingInstructions) {
+      throw new Error('Special load requires all special fields.');
     }
   }
 
-  db.push(data);
-  return data;
+  const result = await pool.query(`
+    INSERT INTO demo.stock_tasks (
+      task_number, created_by_name, created_by_role,
+      assigned_to_name, product, started_at, finished_at,
+      type, status, description, dimensions, weight, special_handling_instructions
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    RETURNING *
+  `, [
+    taskNumber, createdBy.name, createdBy.role,
+    assignedTo?.name, product, startedAt, finishedAt,
+    type, status, description, dimensions, weight, specialHandlingInstructions
+  ]);
+
+  return result.rows[0];
 };
 
 exports.updateTask = async (taskNumber, updates) => {
-  const task = db.find(task => task.taskNumber === taskNumber);
-  if (!task) throw new Error('Task not found.');
+  const existing = await pool.query(`SELECT * FROM demo.stock_tasks WHERE task_number = $1`, [taskNumber]);
+  if (existing.rowCount === 0) throw new Error('Task not found.');
 
-  Object.assign(task, updates);
-  return task;
+  const task = { ...existing.rows[0], ...updates };
+
+  const result = await pool.query(`
+    UPDATE demo.stock_tasks SET
+      created_by_name = $1,
+      created_by_role = $2,
+      assigned_to_name = $3,
+      product = $4,
+      started_at = $5,
+      finished_at = $6,
+      type = $7,
+      status = $8,
+      description = $9,
+      dimensions = $10,
+      weight = $11,
+      special_handling_instructions = $12
+    WHERE task_number = $13
+    RETURNING *
+  `, [
+    task.created_by_name, task.created_by_role, task.assigned_to_name,
+    task.product, task.started_at, task.finished_at,
+    task.type, task.status, task.description, task.dimensions,
+    task.weight, task.special_handling_instructions, taskNumber
+  ]);
+
+  return result.rows[0];
 };

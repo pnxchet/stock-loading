@@ -1,8 +1,9 @@
 const express = require('express');
+const { createTask, updateTask } = require('../controllers/stockTaskController');
 const router = express.Router();
-const stockTaskController = require('../controllers/stockTaskController');
 
-router.post('/', stockTaskController.createTask);
-router.put('/:taskNumber', stockTaskController.updateTask);
+router.post('/tasks', createTask);
+
+router.put('/tasks/:taskNumber', updateTask);
 
 module.exports = router;

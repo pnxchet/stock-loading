@@ -2,8 +2,13 @@ const express = require('express');
 const app = express();
 const stockTaskRoutes = require('./routes/stockTaskRoutes');
 
-app.use(express.json());
-app.use('/api/tasks', stockTaskRoutes);
+app.use(express.json()); // ใช้เพื่อรับ request body เป็น JSON
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ใช้ routes สำหรับ stock tasks
+app.use('/api', stockTaskRoutes);
+
+// เริ่ม server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
